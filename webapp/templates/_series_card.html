@@ -1,0 +1,66 @@
+{# Renders one series box. Variables: s (series dict). #}
+<div class="series-card{% if s.is_placeholder %} placeholder{% endif %}{% if s.status == 'completed' %} completed{% endif %}"
+     {% if not s.is_placeholder %}
+     data-team1-id="{{ s.team1.team_id }}"
+     data-team2-id="{{ s.team2.team_id }}"
+     data-team1-abbr="{{ s.team1.abbreviation }}"
+     data-team2-abbr="{{ s.team2.abbreviation }}"
+     {% endif %}>
+
+    {# --- Team 1 row --- #}
+    <div class="team-row{% if s.winner_id == s.team1.team_id %} winner{% endif %}">
+        <span class="seed">{{ s.team1.seed if s.team1.seed else "" }}</span>
+        {% if s.team1.logo_url %}
+            <img class="team-logo" src="{{ s.team1.logo_url }}"
+                 alt="{{ s.team1.abbreviation }} logo"
+                 onerror="this.style.visibility='hidden'">
+        {% else %}
+            <span class="team-logo placeholder-logo"></span>
+        {% endif %}
+        <span class="abbr">{{ s.team1.abbreviation }}</span>
+        <span class="rs-record">
+            {%- if s.team1.regular_season_wins is not none -%}
+                {{ s.team1.regular_season_wins }}-{{ s.team1.regular_season_losses }}
+            {%- endif -%}
+        </span>
+        <span class="series-wins">{{ s.team1.series_wins }}</span>
+    </div>
+
+    {# --- Team 2 row --- #}
+    <div class="team-row{% if s.winner_id == s.team2.team_id %} winner{% endif %}">
+        <span class="seed">{{ s.team2.seed if s.team2.seed else "" }}</span>
+        {% if s.team2.logo_url %}
+            <img class="team-logo" src="{{ s.team2.logo_url }}"
+                 alt="{{ s.team2.abbreviation }} logo"
+                 onerror="this.style.visibility='hidden'">
+        {% else %}
+            <span class="team-logo placeholder-logo"></span>
+        {% endif %}
+        <span class="abbr">{{ s.team2.abbreviation }}</span>
+        <span class="rs-record">
+            {%- if s.team2.regular_season_wins is not none -%}
+                {{ s.team2.regular_season_wins }}-{{ s.team2.regular_season_losses }}
+            {%- endif -%}
+        </span>
+        <span class="series-wins">{{ s.team2.series_wins }}</span>
+    </div>
+
+    {# --- Status footer --- #}
+    <div class="series-status">
+        {% if s.is_placeholder %}
+            TBD
+        {% elif s.status == 'completed' %}
+            {% if s.winner_id == s.team1.team_id %}
+                {{ s.team1.abbreviation }} wins {{ s.team1.series_wins }}-{{ s.team2.series_wins }}
+            {% else %}
+                {{ s.team2.abbreviation }} wins {{ s.team2.series_wins }}-{{ s.team1.series_wins }}
+            {% endif %}
+        {% elif s.team1.series_wins > s.team2.series_wins %}
+            {{ s.team1.abbreviation }} leads {{ s.team1.series_wins }}-{{ s.team2.series_wins }}
+        {% elif s.team2.series_wins > s.team1.series_wins %}
+            {{ s.team2.abbreviation }} leads {{ s.team2.series_wins }}-{{ s.team1.series_wins }}
+        {% else %}
+            Series tied 0-0
+        {% endif %}
+    </div>
+</div>

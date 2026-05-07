@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["nba_ml", "nba_ml.db", "nba_ml.ingest", "nba_ml.features",
+            "nba_ml.training", "nba_ml.inference",
+            "api", "api.routes"]
+
+[project]
+name = "nba-predict"
+version = "0.1.0"
+description = "MLOps prototype for NBA game outcome prediction."
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "sqlalchemy>=2.0",
+    "pydantic>=2.6",
+    "pydantic-settings>=2.2",
+    "pandas>=2.1",
+    "numpy>=1.26",
+    "scikit-learn>=1.4",
+    "joblib>=1.3",
+    "nba_api>=1.4",
+    "xgboost>=2.0",
+    "requests>=2.31",
+    "matplotlib>=3.7",
+    "flask>=3.0",
+    "gunicorn>=22.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NBA Playoffs Predictor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <header class="page-header">
+        <h1>NBA Playoffs Predictor</h1>
+        <span class="season-badge">{{ bracket.season or "no season data" }}</span>
+    </header>
+
+    <main class="bracket">
+        {# SVG overlay for the connecting bracket lines — drawn by main.js
+           after layout settles, redrawn on resize. #}
+        <svg id="bracket-svg" class="bracket-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+
+        {# Column order mirrors a real NBA bracket: West outside-in, Finals, East inside-out. #}
+        <section class="round-col" data-round="first_round_west">
+            <h3 class="round-title">West<br>First Round</h3>
+            {% for s in bracket.rounds.first_round_west %}
+                {% include "_series_card.html" %}
+            {% endfor %}
+        </section>
+
+        <section class="round-col" data-round="conf_semis_west">
+            <h3 class="round-title">West<br>Semifinals</h3>
+            {% for s in bracket.rounds.conf_semis_west %}
+                {% include "_series_card.html" %}
+            {% endfor %}
+        </section>
+
+        <section class="round-col" data-round="conf_finals_west">
+            <h3 class="round-title">West<br>Finals</h3>
+            {% for s in bracket.rounds.conf_finals_west %}
+                {% include "_series_card.html" %}
+            {% endfor %}
+        </section>
+
+        <section class="round-col finals-col" data-round="finals">
+            <h3 class="round-title">NBA<br>Finals</h3>
+            <div class="finals-branding">
+                <img src="https://a.espncdn.com/i/teamlogos/leagues/500/nba.png"
+                     alt="NBA" class="nba-logo">
+                <span class="finals-text">Finals</span>
+            </div>
+            {% for s in bracket.rounds.finals %}
+                {% include "_series_card.html" %}
+            {% endfor %}
+        </section>
+
+        <section class="round-col" data-round="conf_finals_east">
+            <h3 class="round-title">East<br>Finals</h3>
+            {% for s in bracket.rounds.conf_finals_east %}
+                {% include "_series_card.html" %}
+            {% endfor %}
+        </section>
+
+        <section class="round-col" data-round="conf_semis_east">
+            <h3 class="round-title">East<br>Semifinals</h3>
+            {% for s in bracket.rounds.conf_semis_east %}
+                {% include "_series_card.html" %}
+            {% endfor %}
+        </section>
+
+        <section class="round-col" data-round="first_round_east">
+            <h3 class="round-title">East<br>First Round</h3>
+            {% for s in bracket.rounds.first_round_east %}
+                {% include "_series_card.html" %}
+            {% endfor %}
+        </section>
+    </main>
+
+    {# Modal — populated by main.js when a series card is clicked. #}
+    <div id="modal" class="modal hidden">
+        <div class="modal-content">
+            <button class="close-btn" aria-label="close">×</button>
+            <div id="modal-body">
+                <p class="loading">Loading…</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c 'import ast,sys,pathlib *)",
+      "Bash(python -c 'import ast,pathlib *)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('/c/dev/nba/nba_ml/ingest/nba_api_client.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\(r'c:\\\\dev\\\\nba\\\\nba_ml\\\\ingest\\\\nba_api_client.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\(r'c:\\\\dev\\\\nba\\\\nba_ml\\\\ingest\\\\balldontlie_client.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__query-docs",
+      "Bash(python -c \"import ast; ast.parse\\(open\\(r'c:\\\\dev\\\\nba\\\\nba_ml\\\\training\\\\train.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\(r'c:\\\\dev\\\\nba\\\\nba_ml\\\\ingest\\\\load_games.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\(r'c:\\\\dev\\\\nba\\\\scripts\\\\analyze_features.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "Bash(python -c ' *)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\(r'c:\\\\dev\\\\nba\\\\scripts\\\\migrate.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "Bash(python scripts/migrate.py)",
+      "Bash(python -c \"from nba_ml.ingest.balldontlie_client import BdlClient; print\\('ok'\\)\")",
+      "Bash(python -c \"from webapp.data import get_player_predictions; print\\('import ok'\\)\")",
+      "Bash(python -m webapp.app)",
+      "Bash(timeout 5)",
+      "Bash(curl -s http://127.0.0.1:5000/api/player-predictions/1/2)",
+      "PowerShell(Invoke-RestMethod -Uri \"http://127.0.0.1:5000/api/player-predictions/1/2\" -Method Get -ErrorAction Stop)",
+      "PowerShell(try { $response = Invoke-WebRequest -Uri \"http://127.0.0.1:5000/\" -UseBasicParsing -TimeoutSec 10; \"Status: $\\($response.StatusCode\\)\" } catch { $_.Exception.Message })",
+      "PowerShell($r = Invoke-WebRequest -Uri \"http://127.0.0.1:5000/\" -UseBasicParsing -TimeoutSec 10; \\($r.Content | Select-String 'team_id' -AllMatches\\).Matches | Select-Object -First 10 -ExpandProperty Value)",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://127.0.0.1:5000/api/player-predictions/20/1\" -UseBasicParsing -TimeoutSec 60; $r.Content.Substring\\(0, [Math]::Min\\(2000, $r.Content.Length\\)\\) } catch { $_.Exception.Message })",
+      "Bash(python -c \"from nba_ml.inference.loader import list_available_models; print\\(list_available_models\\(\\)\\)\")",
+      "Bash(python -c \"from webapp.data import get_series_predictions; print\\('import ok'\\)\")"
+    ]
+  }
+}

@@ -1,0 +1,530 @@
+/* ===== Dark NBA palette ===== */
+:root {
+    --bg-page: #0d1117;          /* deep navy / charcoal */
+    --bg-surface: #161b22;       /* card and modal background */
+    --bg-elevated: #1f262e;      /* hover / inner panels */
+    --border: #30363d;
+    --border-strong: #4a525d;
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --text-muted: #6e7681;
+
+    --nba-blue: #1d428a;         /* official NBA blue */
+    --nba-red: #c8102e;          /* official NBA red */
+    --accent-blue: #58a6ff;      /* lighter blue for dark bg readability */
+    --accent-gold: #f5b800;
+
+    --team-left: var(--accent-blue);
+    --team-right: var(--accent-gold);
+    --bar-track: rgba(255, 255, 255, 0.06);
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg-page);
+    color: var(--text-primary);
+    min-height: 100vh;
+}
+
+/* ===== Page chrome ===== */
+.page-header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    padding: 18px 28px;
+    background: linear-gradient(180deg, var(--nba-blue) 0%, var(--bg-page) 100%);
+    border-bottom: 2px solid var(--nba-red);
+}
+
+.page-header h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    color: white;
+}
+
+.season-badge {
+    background: var(--nba-red);
+    color: white;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+}
+
+/* ===== Bracket layout (with SVG overlay) ===== */
+.bracket {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 16px;
+    padding: 28px 24px;
+    min-height: calc(100vh - 90px);
+    position: relative;        /* SVG overlay positioning anchor */
+    overflow-x: auto;
+}
+
+.bracket-svg {
+    position: absolute;
+    inset: 28px 24px;          /* match bracket padding so coords align */
+    width: calc(100% - 48px);
+    height: calc(100% - 56px);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.round-col {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    gap: 14px;
+    min-width: 150px;
+    position: relative;
+    z-index: 1;
+}
+
+.round-title {
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: var(--text-secondary);
+    text-align: center;
+    line-height: 1.3;
+}
+
+/* ===== Series card ===== */
+.series-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+    position: relative;
+    z-index: 2;
+}
+
+.series-card:hover {
+    border-color: var(--accent-blue);
+    box-shadow: 0 4px 14px rgba(88, 166, 255, 0.18);
+    transform: translateY(-1px);
+}
+
+.series-card.completed {
+    opacity: 0.85;
+    background: var(--bg-elevated);
+}
+
+.team-row {
+    display: grid;
+    grid-template-columns: 16px 28px 1fr auto 28px;  /* seed | logo | abbr | record | series-wins */
+    align-items: center;
+    gap: 8px;
+    padding: 5px 0;
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+.seed {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ----- Team logo ----- */
+.team-logo {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+}
+
+.team-logo.placeholder-logo {
+    background: var(--bg-elevated);
+    border-radius: 50%;
+    display: inline-block;
+}
+
+/* ----- Placeholder (TBD) cards ----- */
+.series-card.placeholder {
+    cursor: default;
+    background: var(--bg-page);
+    border-style: dashed;
+    border-color: var(--border);
+    opacity: 0.55;
+}
+
+.series-card.placeholder:hover {
+    border-color: var(--border);
+    box-shadow: none;
+    transform: none;
+}
+
+.series-card.placeholder .abbr { color: var(--text-muted); }
+.series-card.placeholder .series-wins { color: var(--text-muted); }
+.series-card.placeholder .series-status { color: var(--text-muted); font-weight: 600; }
+
+/* ----- NBA Finals center branding ----- */
+.finals-col { justify-content: center; gap: 18px; }
+
+.finals-branding {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 0;
+    pointer-events: none;
+    user-select: none;
+}
+
+.nba-logo {
+    width: 100px;
+    height: auto;
+    filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.4));
+}
+
+.finals-text {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 26px;
+    font-style: italic;
+    font-weight: 400;
+    color: var(--text-primary);
+    letter-spacing: 0.5px;
+}
+
+.team-row.winner {
+    font-weight: 700;
+    color: var(--accent-blue);
+}
+
+.team-row + .team-row {
+    border-top: 1px solid var(--border);
+}
+
+.abbr { font-weight: 600; }
+
+.rs-record { color: var(--text-muted); font-size: 11px; }
+
+.series-wins {
+    text-align: right;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.team-row.winner .series-wins { color: var(--accent-blue); }
+
+.series-status {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+/* ===== Modal ===== */
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 16px;
+    z-index: 100;
+    overflow-y: auto;
+}
+
+.modal.hidden { display: none; }
+
+.modal-content {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 32px;
+    width: 100%;
+    max-width: 760px;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.close-btn {
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    background: none;
+    border: none;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 0;
+}
+
+.close-btn:hover { color: var(--text-primary); }
+
+.loading { text-align: center; padding: 40px 0; color: var(--text-secondary); }
+
+.modal-title {
+    margin: 0 0 4px;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.modal-subtitle {
+    margin: 0 0 22px;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+/* ===== Predictions table ===== */
+.preds-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 28px;
+}
+
+.preds-table th, .preds-table td {
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+.preds-table th {
+    background: var(--bg-elevated);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-secondary);
+}
+
+.preds-table td.value { text-align: right; font-variant-numeric: tabular-nums; }
+.preds-table td.value.highlight { color: var(--accent-gold); font-weight: 700; }
+.preds-table tbody tr:last-child td { border-bottom: none; }
+
+/* Bold purple emphasis for the recommended models (ensemble + stack). */
+.preds-table tr.model-highlight td {
+    color: #c084fc;
+    font-weight: 700;
+}
+.preds-table tr.model-highlight td:first-child {
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+/* ===== Section title ===== */
+.section-title {
+    margin: 28px 0 14px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: 0.2px;
+}
+
+/* ===== Comparison block (matches reference: numbers outside, bars meet at label) ===== */
+.comparison { display: flex; flex-direction: column; gap: 18px; }
+
+.team-headers {
+    display: grid;
+    grid-template-columns: 1fr 90px 1fr;
+    margin-bottom: 6px;
+}
+
+.team-headers .name {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+}
+
+.team-headers .name.left  { text-align: right; color: var(--team-left); }
+.team-headers .name.right { text-align: left;  color: var(--team-right); }
+
+.comp-row {
+    display: grid;
+    grid-template-columns: 70px 1fr 90px 1fr 70px;
+    align-items: center;
+    gap: 10px;
+}
+
+.comp-value {
+    font-size: 22px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+
+.comp-value.left  { text-align: right; color: var(--team-left); }
+.comp-value.right { text-align: left;  color: var(--team-right); }
+
+.comp-bar-track {
+    height: 5px;
+    background: var(--bar-track);
+    border-radius: 3px;
+    overflow: hidden;
+    display: flex;
+}
+
+/* Left bar: fill grows from RIGHT edge of track toward the number on the
+   left, meeting at the label. */
+.comp-bar-track.left { flex-direction: row-reverse; }
+
+.comp-bar-fill {
+    height: 100%;
+    transition: width 0.35s ease-out;
+    border-radius: 3px;
+}
+
+.comp-bar-track.left  .comp-bar-fill { background: var(--team-left); }
+.comp-bar-track.right .comp-bar-fill { background: var(--team-right); }
+
+.comp-label {
+    text-align: center;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: var(--text-secondary);
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+/* ===== Roster panel ===== */
+.roster-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.roster-btn {
+    flex: 1;
+    padding: 8px 14px;
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.roster-btn:hover {
+    border-color: var(--accent-blue);
+    background: var(--bg-surface);
+}
+
+.roster-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 4px;
+}
+
+.roster-table th, .roster-table td {
+    padding: 6px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+}
+
+.roster-table th {
+    background: var(--bg-elevated);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+}
+
+.roster-table th.value, .roster-table td.value {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.roster-table td.pm-pos { color: #4ade80; }
+.roster-table td.pm-neg { color: #f87171; }
+.roster-table td.ts-gold { color: var(--accent-gold); font-weight: 700; }
+.roster-table td.game-score { color: #c084fc; font-weight: 700; }
+.roster-table tbody tr:last-child td { border-bottom: none; }
+.roster-table tbody tr:hover { background: var(--bg-elevated); }
+
+.roster-note {
+    margin-top: 8px;
+    font-size: 10px;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* ===== Head-to-head panel ===== */
+.h2h-summary {
+    margin: 6px 0 14px;
+    padding: 10px 14px;
+    background: var(--bg-elevated);
+    border-left: 3px solid var(--accent-blue);
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.subsection-title {
+    margin: 18px 0 10px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+}
+
+/* ===== Player predictions panel ===== */
+.player-preds-context {
+    margin: 6px 0 14px;
+    padding: 10px 14px;
+    background: var(--bg-elevated);
+    border-left: 3px solid #c084fc;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.player-preds-table td.pred-value {
+    color: #c084fc;
+    font-weight: 700;
+}
+
+.player-preds-table td.pred-detail {
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.player-preds-table .player-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.vegas-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    background: #c084fc;
+    color: var(--bg-page);
+    font-size: 9px;
+    font-weight: 800;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
