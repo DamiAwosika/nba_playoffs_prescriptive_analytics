@@ -699,8 +699,8 @@ def get_player_predictions(team1_id: int, team2_id: int) -> dict:
         team1 = _team_info(db, team1_id)
         team2 = _team_info(db, team2_id)
 
-        t1_roster = _roster_near_date(db, team1_id, as_of)
-        t2_roster = _roster_near_date(db, team2_id, as_of)
+        t1_roster = active_roster_as_of(db, team1_id, as_of) or _roster_near_date(db, team1_id, as_of)
+        t2_roster = active_roster_as_of(db, team2_id, as_of) or _roster_near_date(db, team2_id, as_of)
 
         names = dict(db.execute(
             select(Player.player_id, Player.full_name).where(
