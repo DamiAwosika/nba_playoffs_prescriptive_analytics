@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Railway entrypoint: ensures DB + models exist on the persistent volume,
+# Railway entrypoint: always refreshes DB + models from seed/ on every deploy,
 # then starts gunicorn.
 
 set -e
@@ -8,13 +8,13 @@ DATA_DIR="${RAILWAY_VOLUME_MOUNT_PATH:-/data}"
 
 mkdir -p "$DATA_DIR/models"
 
-if [ -d "seed/models" ] && [ -z "$(ls -A "$DATA_DIR/models" 2>/dev/null)" ]; then
-    echo "Seeding models from seed/models/ -> $DATA_DIR/models/"
+if [ -d "seed/models" ]; then
+    echo "Refreshing models from seed/models/ -> $DATA_DIR/models/"
     cp seed/models/*.joblib "$DATA_DIR/models/"
 fi
 
-if [ -f "seed/nba.db" ] && [ ! -f "$DATA_DIR/nba.db" ]; then
-    echo "Seeding database from seed/nba.db -> $DATA_DIR/nba.db"
+if [ -f "seed/nba.db" ]; then
+    echo "Refreshing database from seed/nba.db -> $DATA_DIR/nba.db"
     cp seed/nba.db "$DATA_DIR/nba.db"
 fi
 
