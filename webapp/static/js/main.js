@@ -263,24 +263,29 @@ function renderPlayerPredTable(players, abbr) {
     const rows = players.map((p) => {
         const props = p.prop_lines || {};
         const usesVegas = Object.values(p.variants || {}).some(v => v === "vegas");
+        const out = p.active === false;
+        const cls = out ? ' class="player-inactive"' : '';
+        const dash = '<span class="inactive-dash">—</span>';
         return `
-        <tr>
+        <tr${cls}>
             <td class="player-name-cell">
                 ${p.name}
-                ${usesVegas ? '<span class="vegas-badge" title="Vegas-augmented model used">V</span>' : ''}
+                ${out ? '<span class="inactive-tag">OUT</span>' : ''}
+                ${!out && usesVegas ? '<span class="vegas-badge" title="Vegas-augmented model used">V</span>' : ''}
             </td>
-            <td class="value pred-value">${fmtNum(p.pts)}</td>
-            <td class="value pred-detail">${props.pts != null ? fmtNum(props.pts) : '—'}</td>
-            <td class="value pred-value">${fmtNum(p.reb)}</td>
-            <td class="value pred-detail">${props.reb != null ? fmtNum(props.reb) : '—'}</td>
-            <td class="value pred-value">${fmtNum(p.ast)}</td>
-            <td class="value pred-detail">${props.ast != null ? fmtNum(props.ast) : '—'}</td>
-            <td class="value pred-value">${fmtNum(p.stl)}</td>
-            <td class="value pred-value">${fmtNum(p.blk)}</td>
-            <td class="value pred-value">${fmtNum(p.tov)}</td>
+            <td class="value ${out ? '' : 'pred-value'}">${out ? dash : fmtNum(p.pts)}</td>
+            <td class="value ${out ? '' : 'pred-detail'}">${out ? dash : (props.pts != null ? fmtNum(props.pts) : '—')}</td>
+            <td class="value ${out ? '' : 'pred-value'}">${out ? dash : fmtNum(p.reb)}</td>
+            <td class="value ${out ? '' : 'pred-detail'}">${out ? dash : (props.reb != null ? fmtNum(props.reb) : '—')}</td>
+            <td class="value ${out ? '' : 'pred-value'}">${out ? dash : fmtNum(p.ast)}</td>
+            <td class="value ${out ? '' : 'pred-detail'}">${out ? dash : (props.ast != null ? fmtNum(props.ast) : '—')}</td>
+            <td class="value ${out ? '' : 'pred-value'}">${out ? dash : fmtNum(p.stl)}</td>
+            <td class="value ${out ? '' : 'pred-value'}">${out ? dash : fmtNum(p.blk)}</td>
+            <td class="value ${out ? '' : 'pred-value'}">${out ? dash : fmtNum(p.tov)}</td>
         </tr>
     `;
     }).join("");
+    const hasInactive = players.some(p => p.active === false);
     return `
         <table class="roster-table player-preds-table">
             <thead>
@@ -299,7 +304,7 @@ function renderPlayerPredTable(players, abbr) {
             </thead>
             <tbody>${rows}</tbody>
         </table>
-        <p class="roster-note">Predicted stats = model ensemble. PTS/REB/AST Line = Vegas prop (if available). <span class="vegas-badge">V</span> = vegas-augmented model used.</p>
+        <p class="roster-note">Predicted stats = model ensemble. PTS/REB/AST Line = Vegas prop (if available). <span class="vegas-badge">V</span> = vegas-augmented model used.${hasInactive ? ' <span class="inactive-tag">OUT</span> = unavailable for this game (injury report).' : ''}</p>
     `;
 }
 

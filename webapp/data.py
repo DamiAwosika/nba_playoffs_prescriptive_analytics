@@ -699,8 +699,11 @@ def get_player_predictions(team1_id: int, team2_id: int) -> dict:
         team1 = _team_info(db, team1_id)
         team2 = _team_info(db, team2_id)
 
-        t1_roster = active_roster_as_of(db, team1_id, as_of) or _roster_near_date(db, team1_id, as_of)
-        t2_roster = active_roster_as_of(db, team2_id, as_of) or _roster_near_date(db, team2_id, as_of)
+        t1_roster = _roster_near_date(db, team1_id, as_of)
+        t2_roster = _roster_near_date(db, team2_id, as_of)
+
+        t1_active = set(active_roster_as_of(db, team1_id, as_of))
+        t2_active = set(active_roster_as_of(db, team2_id, as_of))
 
         names = dict(db.execute(
             select(Player.player_id, Player.full_name).where(
@@ -708,8 +711,8 @@ def get_player_predictions(team1_id: int, team2_id: int) -> dict:
             )
         ).all())
 
-        t1_preds = _predict_roster(db, t1_roster, team2_id, as_of, t1_is_home, names)
-        t2_preds = _predict_roster(db, t2_roster, team1_id, as_of, not t1_is_home, names)
+        t1_preds = _predict_roster(db, t1_roster, team2_id, as_of, t1_is_home, names, t1_active)
+        t2_preds = _predict_roster(db, t2_roster, team1_id, as_of, not t1_is_home, names, t2_active)
 
         return {
             "prediction_context": context,
@@ -726,16 +729,29 @@ def get_player_predictions(team1_id: int, team2_id: int) -> dict:
 def _predict_roster(
     db: Session, player_ids: list[int], opp_id: int,
     as_of: date, is_home: bool, names: dict,
+    active_ids: set[int] | None = None,
 ) -> list[dict]:
+    has_availability = bool(active_ids)
     results = []
     for pid in player_ids:
-        pred = predict_player_stats(db, pid, opp_id, as_of, is_home)
-        if pred is None:
-            continue
+        is_active = (not has_availability) or (pid in active_ids)
         entry = {
             "player_id": pid,
             "name": names.get(pid, f"Player {pid}"),
+            "active": is_active,
         }
+        if not is_active:
+            for target in ("pts", "reb", "ast", "stl", "blk", "tov"):
+                entry[target] = None
+                entry[f"{target}_detail"] = {}
+            entry["variants"] = {}
+            entry["prop_lines"] = {}
+            results.append(entry)
+            continue
+
+        pred = predict_player_stats(db, pid, opp_id, as_of, is_home)
+        if pred is None:
+            continue
         for target in ("pts", "reb", "ast", "stl", "blk", "tov"):
             t_preds = pred.get(target, {})
             entry[target] = t_preds.get("ensemble") or t_preds.get("rf") or t_preds.get("linear")
@@ -743,8 +759,11 @@ def _predict_roster(
         entry["variants"] = pred.get("variants", {})
         entry["prop_lines"] = pred.get("prop_lines", {})
         results.append(entry)
-    results.sort(key=lambda p: -(p.get("pts") or 0))
-    return results
+    active = [p for p in results if p["active"]]
+    inactive = [p for p in results if not p["active"]]
+    active.sort(key=lambda p: -(p.get("pts") or 0))
+    inactive.sort(key=lambda p: p["name"])
+    return active + inactive
 
 
 def _next_game_date(db: Session, t1: int, t2: int) -> date | None:
