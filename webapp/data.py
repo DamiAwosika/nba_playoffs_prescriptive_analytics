@@ -6,7 +6,14 @@ Three public functions:
   get_team_detail(t1, t2)             — side-by-side stat comparison for the modal
 """
 from __future__ import annotations
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
+
+_ET = timezone(timedelta(hours=-4))
+
+
+def _today_et() -> date:
+    """date.today() in US/Eastern so Railway (UTC) matches local behavior."""
+    return datetime.now(_ET).date()
 
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
@@ -357,7 +364,7 @@ def get_series_predictions(team1_id: int, team2_id: int,
     'what did the model predict before this past game?' views."""
     db = SessionLocal()
     try:
-        as_of = as_of or (date.today() + timedelta(days=1))
+        as_of = as_of or (_today_et() + timedelta(days=1))
         models = _available_models()
 
         preds_t1_home = {n: _safe_predict(db, m, team1_id, team2_id, as_of)
@@ -688,7 +695,7 @@ def get_player_predictions(team1_id: int, team2_id: int) -> dict:
             as_of = date.fromisoformat(series["last_date"])
             context = "last_game"
         else:
-            as_of = _next_game_date(db, team1_id, team2_id) or (date.today() + timedelta(days=1))
+            as_of = _next_game_date(db, team1_id, team2_id) or (_today_et() + timedelta(days=1))
             context = "next_game"
 
         # Determine home team for prediction context.
@@ -768,7 +775,7 @@ def _predict_roster(
 
 def _next_game_date(db: Session, t1: int, t2: int) -> date | None:
     """Nearest prop-covered or scheduled game date for this matchup."""
-    today = date.today()
+    today = _today_et()
     # Props are keyed by team_id — check either team.
     prop_date = db.execute(
         select(PlayerProp.game_date).where(
@@ -784,20 +791,39 @@ def _next_game_date(db: Session, t1: int, t2: int) -> date | None:
 
 def _infer_home_team(db: Session, t1: int, t2: int, season: str | None,
                      as_of: date) -> bool:
-    """Best-guess whether team1 is home for the target game."""
+    """Determine whether team1 is home for the next game using the NBA
+    playoff 2-2-1-1-1 format.
+
+    Game 1 home team has home-court advantage (higher seed). The pattern:
+      Game 1,2: HCA team home | Game 3,4: other team home
+      Game 5: HCA team | Game 6: other team | Game 7: HCA team
+    """
     if not season:
         return True
-    last_game = db.execute(
+    # All playoff games between these teams, from team1's perspective.
+    games = db.execute(
         select(Game.is_home).where(
             Game.season == season,
             Game.is_playoff.is_(True),
             Game.team_id == t1,
             Game.opponent_id == t2,
-        ).order_by(Game.game_date.desc()).limit(1)
-    ).scalar_one_or_none()
-    if last_game is not None:
-        return not last_game  # alternate from last game
-    return True
+        ).order_by(Game.game_date.asc())
+    ).scalars().all()
+
+    if not games:
+        return True
+
+    # Game 1 tells us who has home-court advantage.
+    t1_has_hca = games[0]  # True if t1 was home in game 1
+    next_game_num = len(games) + 1
+
+    # 2-2-1-1-1: HCA team is home in games 1, 2, 5, 7
+    hca_home_games = {1, 2, 5, 7}
+    hca_is_home = next_game_num in hca_home_games
+
+    if t1_has_hca:
+        return hca_is_home
+    return not hca_is_home
 
 
 def _latest_season(db: Session) -> str | None:
@@ -837,7 +863,7 @@ def get_team_detail(team1_id: int, team2_id: int) -> dict:
             as_of = date.fromisoformat(series["last_date"]) + timedelta(days=1)
             context = "deciding_game"
         else:
-            as_of = _next_game_date(db, team1_id, team2_id) or (date.today() + timedelta(days=1))
+            as_of = _next_game_date(db, team1_id, team2_id) or (_today_et() + timedelta(days=1))
             context = "next_game"
 
         preds_summary = get_series_predictions(team1_id, team2_id, as_of=as_of)
