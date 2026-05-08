@@ -60,7 +60,7 @@
         {% elif s.team2.series_wins > s.team1.series_wins %}
             {{ s.team2.abbreviation }} leads {{ s.team2.series_wins }}-{{ s.team1.series_wins }}
         {% else %}
-            Series tied 0-0
+            Series tied {{ s.team1.series_wins }}-{{ s.team2.series_wins }}
         {% endif %}
     </div>
 </div>
