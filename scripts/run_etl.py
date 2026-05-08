@@ -20,7 +20,7 @@ from nba_ml.ingest.load_games import (
 
 
 def _default_dates() -> tuple[date, date]:
-    end = date.today() - timedelta(days=1)
+    end = date.today() - timedelta(days=0)
     start = end - timedelta(days=60)
     return start, end
 
@@ -70,7 +70,7 @@ if __name__ == "__main__":
     p.add_argument("--start", type=date.fromisoformat, default=ds,
                    help="Inclusive start date YYYY-MM-DD (default: 7 days ago)")
     p.add_argument("--end", type=date.fromisoformat, default=de,
-                   help="Inclusive end date YYYY-MM-DD (default: yesterday)")
+                   help="Inclusive end date YYYY-MM-DD (default: today)")
     args = p.parse_args()
     main(args.start, args.end)
     print(f"run completed: {date.today()}")
