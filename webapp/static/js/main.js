@@ -280,8 +280,11 @@ function renderPlayerPredTable(players, abbr) {
             <td class="value ${out ? '' : 'pred-value'}">${out ? dash : fmtNum(p.ast)}</td>
             <td class="value ${out ? '' : 'pred-detail'}">${out ? dash : (props.ast != null ? fmtNum(props.ast) : '—')}</td>
             <td class="value ${out ? '' : 'pred-value'}">${out ? dash : fmtNum(p.stl)}</td>
+            <td class="value ${out ? '' : 'pred-detail'}">${out ? dash : (props.stl != null ? fmtNum(props.stl) : '—')}</td>
             <td class="value ${out ? '' : 'pred-value'}">${out ? dash : fmtNum(p.blk)}</td>
+            <td class="value ${out ? '' : 'pred-detail'}">${out ? dash : (props.blk != null ? fmtNum(props.blk) : '—')}</td>
             <td class="value ${out ? '' : 'pred-value'}">${out ? dash : fmtNum(p.tov)}</td>
+            <td class="value ${out ? '' : 'pred-detail'}">${out ? dash : (props.tov != null ? fmtNum(props.tov) : '—')}</td>
         </tr>
     `;
     }).join("");
@@ -298,13 +301,16 @@ function renderPlayerPredTable(players, abbr) {
                     <th class="value">AST</th>
                     <th class="value" title="Vegas AST prop line">AST Line</th>
                     <th class="value">STL</th>
+                    <th class="value" title="Vegas STL prop line">STL Line</th>
                     <th class="value">BLK</th>
+                    <th class="value" title="Vegas BLK prop line">BLK Line</th>
                     <th class="value">TO</th>
+                    <th class="value" title="Vegas TO prop line">TO Line</th>
                 </tr>
             </thead>
             <tbody>${rows}</tbody>
         </table>
-        <p class="roster-note">Predicted stats = model ensemble. PTS/REB/AST Line = Vegas prop (if available). <span class="vegas-badge">V</span> = vegas-augmented model used.${hasInactive ? ' <span class="inactive-tag">OUT</span> = unavailable for this game (injury report).' : ''}</p>
+        <p class="roster-note">Predicted stats = model ensemble. Line = Vegas prop (if available). <span class="vegas-badge">V</span> = vegas-augmented model used.${hasInactive ? ' <span class="inactive-tag">OUT</span> = unavailable for this game (injury report).' : ''}</p>
     `;
 }
 
