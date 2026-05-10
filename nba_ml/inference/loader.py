@@ -49,7 +49,7 @@ class StackedModel:
 
 
 class VotingEnsemble:
-    """Soft-vote ensemble: mean of member predict_proba outputs.
+    """Soft-vote ensemble: equal-weight mean of member predict_proba outputs.
 
     Bundle stores only member names — the actual member models are loaded via
     get_loaded_model and held by reference. No retraining at load time.
@@ -61,7 +61,6 @@ class VotingEnsemble:
         self.member_names: list[str] = bundle["member_names"]
         self.feature_version: str = bundle["feature_version"]
         self.version: str = bundle["version"]
-        # All members share these — pick the first as authoritative.
         self.feature_columns: list[str] = bundle.get(
             "feature_columns", members[0].feature_columns,
         )

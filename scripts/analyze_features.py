@@ -4,7 +4,7 @@ Run AFTER `python -m nba_ml.training.train`. Produces six PNGs in analysis/:
   feature_importance.png       native importance + permutation importance per model
   correlation.png              feature correlation heatmap (spot redundancy)
   distributions.png            per-feature histograms (spot outliers / scale issues)
-  feature_vs_target.png        decile plots — is each feature monotonic in P(home win)?
+  feature_vs_target.png        decile plots -- is each feature monotonic in P(home win)?
   calibration_and_confusion.png  reliability diagrams + confusion matrices
 
 Also prints ranked importance tables and concrete next-step suggestions.
@@ -26,7 +26,7 @@ from sklearn.metrics import confusion_matrix
 
 from nba_ml.config import settings
 from nba_ml.db.base import SessionLocal
-from nba_ml.features.matchup import FEATURE_COLUMNS
+from nba_ml.features.matchup import FEATURE_COLUMNS, FEATURE_COLUMNS_VEGAS
 from nba_ml.training.train import build_training_frame
 
 
@@ -34,12 +34,12 @@ from nba_ml.training.train import build_training_frame
 
 def load_models(models_dir: Path) -> dict[str, dict]:
     bundles: dict[str, dict] = {}
+    skip_types = {"stack", "ensemble"}
     for path in sorted(models_dir.glob("*_v1.joblib")):
+        if path.name.startswith("player_") or "vegas" in path.name:
+            continue
         bundle = joblib.load(path)
-        # Stack model operates on base-model probabilities, not raw game features
-        # — its feature importance is a different analysis (the meta weights),
-        # already printed during training. Skip here.
-        if bundle.get("model_type") == "stack":
+        if bundle.get("model_type") in skip_types:
             continue
         bundles[bundle["model_type"]] = bundle
     return bundles
@@ -74,42 +74,46 @@ def plot_feature_importance(bundles, X_test, y_test, out_dir):
         axes = axes.reshape(2, 1)
 
     for i, (name, b) in enumerate(bundles.items()):
+        feat_cols = b.get("feature_columns", FEATURE_COLUMNS)
+        X_test_m = X_test[feat_cols] if set(feat_cols).issubset(X_test.columns) else X_test[FEATURE_COLUMNS]
+        cols_used = list(X_test_m.columns)
+
         # Native
         imp = native_importance(name, b["model"])
         order = np.argsort(imp)
         ax = axes[0, i]
-        ax.barh([FEATURE_COLUMNS[j] for j in order], imp[order], color="steelblue")
-        ax.set_title(f"{name} — native importance\n"
+        ax.barh([cols_used[j] for j in order], imp[order], color="steelblue")
+        ax.set_title(f"{name} -- native importance\n"
                      f"({'|coef|' if name == 'logreg' else 'gain/gini'})")
         ax.tick_params(axis="y", labelsize=7)
 
-        # Permutation (model-agnostic, on holdout — most reliable)
+        # Permutation (model-agnostic, on holdout -- most reliable)
         pi = permutation_importance(
-            b["model"], X_test, y_test,
+            b["model"], X_test_m, y_test,
             scoring="neg_log_loss", n_repeats=8, random_state=42, n_jobs=-1,
         )
         order2 = np.argsort(pi.importances_mean)
         ax = axes[1, i]
         ax.barh(
-            [FEATURE_COLUMNS[j] for j in order2],
+            [cols_used[j] for j in order2],
             pi.importances_mean[order2],
             xerr=pi.importances_std[order2],
             color="darkred",
         )
         ax.axvline(0, color="black", lw=0.5)
-        ax.set_title(f"{name} — permutation importance\n(higher = bigger log_loss hit when shuffled)")
+        ax.set_title(f"{name} -- permutation importance\n(higher = bigger log_loss hit when shuffled)")
         ax.tick_params(axis="y", labelsize=7)
 
         # Print ranking
         top = np.argsort(pi.importances_mean)[::-1]
         print(f"\n{name} permutation importance (top 10):")
         for rank, j in enumerate(top[:10], 1):
-            print(f"  {rank:2}. {FEATURE_COLUMNS[j]:<28} {pi.importances_mean[j]:+.4f} "
+            print(f"  {rank:2}. {cols_used[j]:<28} {pi.importances_mean[j]:+.4f} "
                   f"± {pi.importances_std[j]:.4f}")
-        zero_or_neg = [FEATURE_COLUMNS[j] for j in range(len(FEATURE_COLUMNS))
+        zero_or_neg = [cols_used[j] for j in range(len(cols_used))
                        if pi.importances_mean[j] <= 0]
         if zero_or_neg:
-            print(f"  features with ≤0 permutation importance: {zero_or_neg}")
+            print(f"  features with <=0 permutation importance: {zero_or_neg}")
 
     plt.tight_layout()
     plt.savefig(out_dir / "feature_importance.png", dpi=120)
@@ -142,7 +146,7 @@ def plot_correlation(X, out_dir):
         for c1, c2, v in sorted(pairs, key=lambda x: -abs(x[2])):
             print(f"  {v:+.2f}  {c1} <-> {c2}")
     else:
-        print("\nNo feature pairs with |r| > 0.7 — no obvious redundancy.")
+        print("\nNo feature pairs with |r| > 0.7 -- no obvious redundancy.")
 
 
 def plot_distributions(X, out_dir):
@@ -213,7 +217,9 @@ def plot_calibration_and_confusion(bundles, X_test, y_test, out_dir):
         axes = axes.reshape(2, 1)
 
     for i, (name, b) in enumerate(bundles.items()):
-        proba = b["model"].predict_proba(X_test)[:, 1]
+        feat_cols = b.get("feature_columns", FEATURE_COLUMNS)
+        X_m = X_test[feat_cols] if set(feat_cols).issubset(X_test.columns) else X_test[FEATURE_COLUMNS]
+        proba = b["model"].predict_proba(X_m)[:, 1]
         preds = (proba >= 0.5).astype(int)
 
         frac, mean_pred = calibration_curve(y_test, proba, n_bins=10, strategy="quantile")
@@ -232,7 +238,8 @@ def plot_calibration_and_confusion(bundles, X_test, y_test, out_dir):
         for r in range(2):
             for c in range(2):
                 ax.text(c, r, str(cm[r, c]), ha="center", va="center", fontsize=14,
-                        color="white" if cm[r, c] > cm.max() / 2 else "black")
+                        fontweight="bold",
+                        color="white" if cm[r, c] > cm.max() * 0.65 else "black")
         ax.set_xticks([0, 1]); ax.set_yticks([0, 1])
         ax.set_xticklabels(["away win", "home win"])
         ax.set_yticklabels(["away win", "home win"])
@@ -246,7 +253,37 @@ def plot_calibration_and_confusion(bundles, X_test, y_test, out_dir):
 
 def print_recommendations():
     print("""
-Concrete next steps to lift RF/XGB above logreg:
+============================================================================
+IMPORTANT: VEGAS ODDS (vegas_home_win_prob) -- DATA LEAKAGE WARNING
+============================================================================
+
+The vegas_home_win_prob feature is EXCLUDED from the base FEATURE_COLUMNS
+used in this analysis. It is only available in the separate Vegas-augmented
+model variant (FEATURE_COLUMNS_VEGAS).
+
+WHY: Vegas lines incorporate information that our model should learn to
+derive on its own -- including injury reports, public betting patterns, and
+sharp-money signals that are updated right up until tip-off. Using Vegas
+odds as a feature creates two problems:
+
+  1. CIRCULAR DEPENDENCY -- The model learns to parrot the bookmaker rather
+     than learning team-strength fundamentals. Permutation importance will
+     show vegas_home_win_prob dominating all other features, masking their
+     true predictive value.
+
+  2. TEMPORAL AVAILABILITY -- At prediction time, odds may not be posted yet
+     (early-week predictions), may shift significantly before tip-off, or
+     may not exist at all for certain games. A model that depends heavily
+     on Vegas odds becomes unreliable when that signal is missing.
+
+The Vegas-augmented model is trained separately on the subset of games
+where pre-game odds were archived. It is useful as a REFERENCE model
+(labeled VEGAS_REF in the dashboard) but should not replace the base
+models for general-purpose prediction.
+
+============================================================================
+
+Concrete next steps to improve model accuracy:
 
 1. MORE DATA (largest single lever).
    python scripts/run_etl.py --start 2022-10-18 --end 2026-04-27
@@ -260,33 +297,22 @@ Concrete next steps to lift RF/XGB above logreg:
 
 3. PRUNE REDUNDANT FEATURES.
    See correlation.png. If you find pairs with |r| > 0.9 (e.g. off_rating
-   ↔ net_rating), drop one. Trees handle collinearity but it bloats the
+   <-> net_rating), drop one. Trees handle collinearity but it bloats the
    number of splits considered.
 
 4. PRUNE NOISY FEATURES.
-   See feature_importance.png — bottom panel (permutation). Any feature
-   with permutation importance ≤ 0 is actively hurting log_loss. Remove
+   See feature_importance.png -- bottom panel (permutation). Any feature
+   with permutation importance <= 0 is actively hurting log_loss. Remove
    those from FEATURE_COLUMNS in matchup.py and retrain.
 
 5. CHECK MONOTONICITY.
    See feature_vs_target.png. If a feature is non-monotonic (zig-zag),
    tree models can fit the noise. Consider transforming or dropping it.
 
-6. XGB-SPECIFIC TWEAKS.
-   - Lower learning_rate (0.005-0.01) with much higher n_estimators (1500+).
-   - Add early_stopping_rounds with a held-out validation slice.
-   - Try monotonic_constraints={"home_net_roll10": 1, "away_net_roll10": -1}
-     to inject prior knowledge (more home net rating -> higher P(home wins)).
-
-7. FEATURE INTERACTIONS.
-   Add explicit differential features: (home_net_roll10 - away_net_roll10),
-   (home_pace_roll5 - away_pace_roll5). Trees can derive these themselves
-   given enough depth + data, but explicit features short-circuit the search.
-
-8. CALIBRATION CHECK.
+6. CALIBRATION CHECK.
    See calibration_and_confusion.png. If a model's curve hugs the diagonal,
    probabilities are trustworthy. If it sags, predictions are overconfident
-   (or underconfident — opposite direction).
+   (or underconfident -- opposite direction).
 """)
 
 
@@ -311,9 +337,10 @@ def main(models_dir: Path, out_dir: Path, feature_version: str) -> None:
     df = df.sort_values("game_date").reset_index(drop=True)
     split = max(1, int(len(df) * 0.8))
     train_df, test_df = df.iloc[:split], df.iloc[split:]
-    X_train = train_df[FEATURE_COLUMNS]
+    available = [c for c in FEATURE_COLUMNS_VEGAS if c in df.columns]
+    X_train = train_df[available]
     y_train = train_df["home_won"].values
-    X_test = test_df[FEATURE_COLUMNS]
+    X_test = test_df[available]
     y_test = test_df["home_won"].values
     print(f"Train: {len(train_df)}  Test: {len(test_df)}")
 

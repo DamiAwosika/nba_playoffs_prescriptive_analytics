@@ -324,9 +324,7 @@ def _save_ensemble(
     *, feature_columns: list[str], model_suffix: str,
     feature_version: str, out_dir: Path, name: str,
 ) -> dict | None:
-    """Soft-vote ensemble (mean of member predict_probas). Saves a bundle that
-    just lists which member models to load — the actual mean happens at
-    inference time inside VotingEnsemble."""
+    """Soft-vote ensemble (equal-weight mean of member predict_probas)."""
     members = list(fitted_calibrated.keys())
     if len(members) < 2:
         return None

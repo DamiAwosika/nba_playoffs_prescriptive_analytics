@@ -11,6 +11,8 @@ models/
 .pytest_cache/
 .ipynb_checkpoints/
 logs/
+.claude/
+CLAUDE.md
 
 # Allow seed data for Railway deployment (DB + models bootstrap)
 !seed/

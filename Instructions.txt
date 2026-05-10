@@ -79,5 +79,26 @@ schtasks /create /sc daily /tn "Train Player Predictions" `
   /tr "cmd /c cd /d C:\dev\nba && C:\Users\damia\anaconda3\envs\nba_ML\python.exe scripts\train_player_models.py --tune >> logs\train_player_prediction_models.log 2>&1" `
   /st 17:00 /f
 
+#############################################################
 
+# To update seed models in railway app
+Copy-Item nba.db seed\nba.db -Force
+Copy-Item models\*.joblib seed\models\ -Force
+git add seed/
+git commit -m "Refresh seed data"
+git push
 
+Copy-Item nba.db seed\nba.db -Force
+Copy-Item models\*.joblib seed\models\ -Force
+git add -A
+git commit -m "Update frontend with STL/BLK/TO lines and refresh seed data"
+git push
+
+# Workflow to update app
+python scripts/run_etl.py
+python scripts/predict_playoffs.py
+python scripts/archive_player_props.py
+Copy-Item nba.db seed\nba.db -Force
+git add -f seed/nba.db
+git commit -m "Refresh seed data"
+git push
