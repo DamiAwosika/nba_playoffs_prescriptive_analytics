@@ -358,13 +358,17 @@ def _full_tbd_rounds() -> dict:
 
 
 def get_series_predictions(team1_id: int, team2_id: int,
-                            as_of: date | None = None) -> dict:
+                            as_of: date | None = None,
+                            vegas_game_date: date | None = None) -> dict:
     """Quick prediction summary for a series. Used by the click handler.
     `as_of` defaults to tomorrow; pass an earlier date for retrospective
-    'what did the model predict before this past game?' views."""
+    'what did the model predict before this past game?' views.
+    `vegas_game_date` is the actual game date for the vegas odds lookup
+    (defaults to `as_of` if not provided)."""
     db = SessionLocal()
     try:
         as_of = as_of or (_today_et() + timedelta(days=1))
+        vdate = vegas_game_date or as_of
         models = _available_models()
 
         preds_t1_home = {n: _safe_predict(db, m, team1_id, team2_id, as_of)
@@ -372,9 +376,9 @@ def get_series_predictions(team1_id: int, team2_id: int,
         preds_t2_home = {n: _safe_predict(db, m, team2_id, team1_id, as_of)
                          for n, m in models.items()}
 
-        vegas_t1_home = vegas_home_win_prob(db, team1_id, team2_id, as_of)
+        vegas_t1_home = vegas_home_win_prob(db, team1_id, team2_id, vdate)
         vegas_t1_home = None if vegas_t1_home == 0.5 else vegas_t1_home
-        vegas_t2_home = vegas_home_win_prob(db, team2_id, team1_id, as_of)
+        vegas_t2_home = vegas_home_win_prob(db, team2_id, team1_id, vdate)
         vegas_t2_home = None if vegas_t2_home == 0.5 else vegas_t2_home
 
         return {
@@ -860,13 +864,17 @@ def get_team_detail(team1_id: int, team2_id: int) -> dict:
         series = _find_series_for_teams(actual_series, team1_id, team2_id)
 
         if series and series.get("status") == "completed" and series.get("last_date"):
-            as_of = date.fromisoformat(series["last_date"]) + timedelta(days=1)
+            last_game_date = date.fromisoformat(series["last_date"])
+            as_of = last_game_date + timedelta(days=1)
+            vegas_date = last_game_date
             context = "deciding_game"
         else:
             as_of = _next_game_date(db, team1_id, team2_id) or (_today_et() + timedelta(days=1))
+            vegas_date = None
             context = "next_game"
 
-        preds_summary = get_series_predictions(team1_id, team2_id, as_of=as_of)
+        preds_summary = get_series_predictions(team1_id, team2_id, as_of=as_of, vegas_game_date=vegas_date)
+        t1_is_home = _infer_home_team(db, team1_id, team2_id, season, as_of)
 
         return {
             "team1": team1,
@@ -876,6 +884,7 @@ def get_team_detail(team1_id: int, team2_id: int) -> dict:
             "team1_features": team1_features,
             "team2_features": team2_features,
             "preds": preds_summary,
+            "team1_is_home": t1_is_home,
             "prediction_context": context,
             "prediction_date": as_of.isoformat(),
             "series_status": series.get("status") if series else "predetermined",

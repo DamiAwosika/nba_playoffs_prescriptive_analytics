@@ -289,15 +289,131 @@ body {
     font-size: 13px;
 }
 
-/* ===== Predictions table ===== */
+/* ===== Predictions section ===== */
+
+/* -- Primary prediction cards -- */
+.pred-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 12px;
+}
+.pred-card-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #c084fc;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+.pred-card.sportsbook .pred-card-label {
+    color: var(--accent-gold);
+}
+
+/* -- Win bar -- */
+.win-bar-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+.win-bar-pct {
+    font-size: 15px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    min-width: 52px;
+}
+.win-bar-pct.left { text-align: right; color: var(--accent-blue); }
+.win-bar-pct.right { text-align: left; color: var(--accent-gold); }
+.win-bar-track {
+    flex: 1;
+    height: 28px;
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex;
+    background: var(--bar-track);
+}
+.win-bar-fill-left {
+    height: 100%;
+    background: var(--accent-blue);
+    border-radius: 14px 0 0 14px;
+    transition: width 0.4s ease;
+}
+.win-bar-fill-right {
+    height: 100%;
+    background: var(--accent-gold);
+    border-radius: 0 14px 14px 0;
+    transition: width 0.4s ease;
+}
+.win-bar-teams {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+}
+
+/* -- Confidence label -- */
+.confidence-label {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    margin-top: 4px;
+    letter-spacing: 0.3px;
+}
+
+/* -- No data state -- */
+.pred-card-nodata {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+    padding: 8px 0;
+}
+
+/* -- Model details toggle -- */
+.model-details-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    padding: 6px 14px;
+    cursor: pointer;
+    margin-bottom: 12px;
+    transition: border-color 0.2s, color 0.2s;
+}
+.model-details-toggle:hover {
+    border-color: var(--accent-blue);
+    color: var(--text-primary);
+}
+.model-details-toggle .arrow {
+    font-size: 10px;
+    transition: transform 0.2s;
+}
+.model-details-toggle.open .arrow {
+    transform: rotate(180deg);
+}
+.model-details-panel {
+    display: none;
+    margin-bottom: 20px;
+}
+.model-details-panel.open {
+    display: block;
+}
+
+/* -- Detail table (individual models) -- */
 .preds-table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 28px;
+    margin-bottom: 8px;
 }
 
 .preds-table th, .preds-table td {
-    padding: 10px 14px;
+    padding: 8px 14px;
     text-align: left;
     border-bottom: 1px solid var(--border);
 }
@@ -311,18 +427,8 @@ body {
 }
 
 .preds-table td.value { text-align: right; font-variant-numeric: tabular-nums; }
-.preds-table td.value.highlight { color: var(--accent-gold); font-weight: 700; }
 .preds-table tbody tr:last-child td { border-bottom: none; }
-
-/* Bold purple emphasis for the recommended models (ensemble + stack). */
-.preds-table tr.model-highlight td {
-    color: #c084fc;
-    font-weight: 700;
-}
-.preds-table tr.model-highlight td:first-child {
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-}
+.preds-table td.model-name { text-transform: uppercase; letter-spacing: 0.3px; font-weight: 600; font-size: 13px; }
 
 /* ===== Section title ===== */
 .section-title {

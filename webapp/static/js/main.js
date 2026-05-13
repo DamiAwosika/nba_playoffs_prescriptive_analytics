@@ -57,7 +57,7 @@ function closeModal() { modal.classList.add("hidden"); }
 
 function renderModal(data) {
     const { team1, team2, team1_playoff_stats, team2_playoff_stats,
-            team1_features, team2_features, preds,
+            team1_features, team2_features, preds, team1_is_home,
             prediction_context, prediction_date, series_status } = data;
 
     const subtitle = prediction_context === "deciding_game"
@@ -70,7 +70,7 @@ function renderModal(data) {
         <h2 class="modal-title">${team1.full_name} vs ${team2.full_name}</h2>
         <p class="modal-subtitle">${subtitle}</p>
 
-        ${renderPredictions(team1, team2, preds)}
+        ${renderPredictions(team1, team2, preds, team1_is_home)}
 
         <h3 class="section-title">Playoff averages (this postseason)</h3>
         ${renderComparison(team1, team2, [
@@ -368,50 +368,110 @@ function renderRoster(data, abbr) {
     `;
 }
 
-function renderPredictions(team1, team2, preds) {
+function confidenceLabel(p, teamAbbr) {
+    if (p === null || p === undefined) return "";
+    const pct = p * 100;
+    if (pct >= 75) return `Strong ${teamAbbr} favorite`;
+    if (pct >= 62) return `${teamAbbr} favored`;
+    if (pct >= 55) return `Slight ${teamAbbr} edge`;
+    return "Toss-up";
+}
+
+function renderWinBar(homeAbbr, awayAbbr, homeProb) {
+    if (homeProb == null) {
+        return `<div class="pred-card-nodata">No odds available for this matchup</div>`;
+    }
+    const awayProb = 1 - homeProb;
+    const homePct = (homeProb * 100).toFixed(1);
+    const awayPct = (awayProb * 100).toFixed(1);
+    const favTeam = homeProb >= awayProb ? homeAbbr : awayAbbr;
+    const favProb = Math.max(homeProb, awayProb);
+    const label = confidenceLabel(favProb, favTeam);
+    const labelColor = homeProb >= awayProb ? "var(--accent-blue)" : "var(--accent-gold)";
+    return `
+        <div class="win-bar-teams">
+            <span>${homeAbbr} (Home)</span>
+            <span>${awayAbbr} (Away)</span>
+        </div>
+        <div class="win-bar-container">
+            <span class="win-bar-pct left">${homePct}%</span>
+            <div class="win-bar-track">
+                <div class="win-bar-fill-left" style="width:${homePct}%"></div>
+                <div class="win-bar-fill-right" style="width:${awayPct}%"></div>
+            </div>
+            <span class="win-bar-pct right">${awayPct}%</span>
+        </div>
+        <div class="confidence-label" style="color:${labelColor}">${label}</div>
+    `;
+}
+
+function renderPredictions(team1, team2, preds, team1IsHome) {
     const t1home = preds?.team1_at_home || {predictions: {}, vegas_home_win_prob: null};
     const t2home = preds?.team2_at_home || {predictions: {}, vegas_home_win_prob: null};
-    const allNames = Array.from(new Set([
-        ...Object.keys(t1home.predictions || {}),
-        ...Object.keys(t2home.predictions || {}),
-    ]));
-    const HIGHLIGHTED = new Set(["ensemble", "stack"]);
-    const modelNames = [
-        ...allNames.filter(n => !HIGHLIGHTED.has(n)),
-        ...allNames.filter(n => HIGHLIGHTED.has(n)),
-    ];
 
-    const rows = modelNames.map((name) => {
-        const cls = HIGHLIGHTED.has(name) ? " class=\"model-highlight\"" : "";
-        return `
-        <tr${cls}>
-            <td>${name}</td>
-            <td class="value">${fmtPct(t1home.predictions[name])}</td>
-            <td class="value">${fmtPct(t2home.predictions[name])}</td>
-        </tr>
+    const homeTeam = team1IsHome ? team1 : team2;
+    const awayTeam = team1IsHome ? team2 : team1;
+    const homePreds = team1IsHome ? t1home : t2home;
+
+    const ensembleHome = homePreds.predictions?.ensemble ?? null;
+    const vegasHome = homePreds.vegas_home_win_prob;
+
+    const modelCard = `
+        <div class="pred-card">
+            <div class="pred-card-label">Model Prediction</div>
+            ${renderWinBar(homeTeam.abbreviation, awayTeam.abbreviation, ensembleHome)}
+        </div>
     `;
-    }).join("");
 
-    const vegasRow = `
+    const vegasCard = `
+        <div class="pred-card sportsbook">
+            <div class="pred-card-label">Sportsbook Line</div>
+            ${renderWinBar(homeTeam.abbreviation, awayTeam.abbreviation, vegasHome)}
+        </div>
+    `;
+
+    const DETAIL_MODELS = ["logreg", "rf", "xgb", "ensemble", "stack"];
+    const DISPLAY_NAMES = {logreg: "Logistic Regression", rf: "Random Forest", xgb: "XGBoost", ensemble: "Ensemble", stack: "Stack"};
+    const detailRows = DETAIL_MODELS
+        .filter(n => homePreds.predictions?.[n] != null)
+        .map(name => {
+            const hp = homePreds.predictions[name];
+            return `
+            <tr>
+                <td class="model-name">${DISPLAY_NAMES[name] || name}</td>
+                <td class="value">${fmtPct(hp)}</td>
+                <td class="value">${fmtPct(hp != null ? 1 - hp : null)}</td>
+            </tr>
+        `;
+        }).join("");
+
+    const vegasDetailRow = vegasHome != null ? `
         <tr>
-            <td class="highlight"><strong>VEGAS_REF</strong></td>
-            <td class="value highlight">${fmtPct(t1home.vegas_home_win_prob)}</td>
-            <td class="value highlight">${fmtPct(t2home.vegas_home_win_prob)}</td>
+            <td class="model-name" style="color:var(--accent-gold)">Sportsbook</td>
+            <td class="value" style="color:var(--accent-gold);font-weight:700">${fmtPct(vegasHome)}</td>
+            <td class="value" style="color:var(--accent-gold);font-weight:700">${fmtPct(1 - vegasHome)}</td>
         </tr>
+    ` : "";
+
+    const detailsPanel = `
+        <button class="model-details-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.classList.toggle('open')">
+            <span class="arrow">&#9660;</span> Model Details
+        </button>
+        <div class="model-details-panel">
+            <table class="preds-table">
+                <thead>
+                    <tr>
+                        <th>Model</th>
+                        <th style="text-align:right">P(${homeTeam.abbreviation} wins) — Home</th>
+                        <th style="text-align:right">P(${awayTeam.abbreviation} wins) — Away</th>
+                    </tr>
+                </thead>
+                <tbody>${detailRows}${vegasDetailRow}</tbody>
+            </table>
+        </div>
     `;
 
-    return `
-        <table class="preds-table">
-            <thead>
-                <tr>
-                    <th>Model</th>
-                    <th style="text-align:right">P(${team1.abbreviation} wins) — ${team1.abbreviation} home</th>
-                    <th style="text-align:right">P(${team2.abbreviation} wins) — ${team2.abbreviation} home</th>
-                </tr>
-            </thead>
-            <tbody>${rows}${vegasRow}</tbody>
-        </table>
-    `;
+    return modelCard + vegasCard + detailsPanel;
 }
 
 // Side-by-side comparison: numbers on the OUTSIDE, bars meet at the centre label.
