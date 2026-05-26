@@ -269,17 +269,23 @@ def main(season: str | None = None, tune: bool = False) -> None:
     print(f"{'target':<8} {'model':<8} {'MAE':>7} {'RMSE':>7} {'R2':>7}  rows")
     print("-" * 52)
     MIN_VEGAS_ROWS = 200
+    VEGAS_HOLDOUT_FRAC = 0.20
     for target in TARGETS:
         line_col = f"vegas_{target}_line"
-        if line_col not in train.columns:
+        if line_col not in df.columns:
             print(f"{target:<8} skipped — no vegas prop column ({line_col}).")
             continue
-        # Sentinel 0.0 means no pre-game prop was found for that row.
-        train_v = train[train[line_col] > 0]
-        test_v = test[test[line_col] > 0]
+        # Independent temporal split on only the rows that have prop lines,
+        # so props don't all land in the holdout of the full-dataset split.
+        df_v = df[df[line_col] > 0]
+        if len(df_v) < MIN_VEGAS_ROWS + 20:
+            print(f"{target:<8} skipped — only {len(df_v)} total rows with prop lines "
+                  f"(need ≥ {MIN_VEGAS_ROWS + 20}).")
+            continue
+        train_v, test_v = _temporal_split(df_v, VEGAS_HOLDOUT_FRAC)
         if len(train_v) < MIN_VEGAS_ROWS or len(test_v) < 20:
             print(f"{target:<8} skipped — only {len(train_v)} train / {len(test_v)} test "
-                  f"rows have pre-game prop lines (need ≥ {MIN_VEGAS_ROWS} train).")
+                  f"rows after split (need ≥ {MIN_VEGAS_ROWS} train).")
             continue
 
         cols = VEGAS_FEATURE_COLUMNS_BY_TARGET[target]
